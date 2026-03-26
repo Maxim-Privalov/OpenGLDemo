@@ -1,6 +1,9 @@
+#ifndef VLINES_H
+#define VLINES_H
 #define _USE_MATH_DEFINES
-#include <optional>
+
 #include <GLFW/glfw3.h>
+#include <optional>
 #include <vector>
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/vector.hpp>
@@ -29,14 +32,6 @@ class Vertex {
         }
 };
 
-struct Color {
-    double r;
-    double g;
-    double b;
-    double a;
-    Color(double r, double g, double b, double a) : r{r}, g{g}, b{b}, a{a} {};
-};
-
 std::vector<Vertex> rotateVertex(const std::vector<Vertex>& vertices, const Vertex& center, double angle) {
     ublas::matrix<double> rM(2, 2);
     rM(0,0) = std::cos(angle); rM(0,1) = -std::sin(angle);
@@ -59,6 +54,16 @@ Vertex getCenterVertex(const Vertex& v1, const Vertex& v2) {
     return Vertex((v1.x + v2.x) / 2, (v1.y + v2.y) / 2);
 }
 
+
+
+struct Color {
+    double r;
+    double g;
+    double b;
+    double a;
+    Color(double r, double g, double b, double a) : r{r}, g{g}, b{b}, a{a} {};
+};
+
 static void plot(int x, int y, const Color& c, float brightness) {
     if (brightness <= 0.001f) return; 
 
@@ -71,6 +76,8 @@ static void plot(int x, int y, const Color& c, float brightness) {
               alpha);
     glVertex2i(x, y);
 }
+
+
 
 void drawLine(const Vertex& v1, const Vertex& v2, Color stroke_color, bool anti_alias = true) {
     double x0 = v1.x;
@@ -136,11 +143,11 @@ void drawLine(const Vertex& v1, const Vertex& v2, Color stroke_color, bool anti_
     glBegin(GL_POINTS);
 
     if (steep) {
-        plot(static_cast<int>(ypxl1), static_cast<int>(xpxl1), stroke_color, (1.0f - (yend - ypxl1)) * static_cast<float>(xgap));
-        plot(static_cast<int>(ypxl1 + 1), static_cast<int>(xpxl1), stroke_color, (yend - ypxl1) * static_cast<float>(xgap));
+        plot(static_cast<int>(ypxl1), static_cast<int>(xpxl1), stroke_color, (1.0f - (yend - ypxl1)) * xgap);
+        plot(static_cast<int>(ypxl1 + 1), static_cast<int>(xpxl1), stroke_color, (yend - ypxl1) * xgap);
     } else {
-        plot(static_cast<int>(xpxl1), static_cast<int>(ypxl1), stroke_color, (1.0f - (yend - ypxl1)) * static_cast<float>(xgap));
-        plot(static_cast<int>(xpxl1), static_cast<int>(ypxl1 + 1), stroke_color, (yend - ypxl1) * static_cast<float>(xgap));
+        plot(static_cast<int>(xpxl1), static_cast<int>(ypxl1), stroke_color, (1.0f - (yend - ypxl1)) * xgap);
+        plot(static_cast<int>(xpxl1), static_cast<int>(ypxl1 + 1), stroke_color, (yend - ypxl1) * + xgap);
     }
 
     double intery = yend + gradient;  // первая fractional y для основного цикла
@@ -171,96 +178,148 @@ void drawLine(const Vertex& v1, const Vertex& v2, Color stroke_color, bool anti_
     double ypxl2 = std::floor(yend + 0.5);
 
     if (steep) {
-        plot(static_cast<int>(ypxl2), static_cast<int>(xpxl2), stroke_color, (1.0f - (yend - ypxl2)) * static_cast<float>(xgap));
-        plot(static_cast<int>(ypxl2 + 1), static_cast<int>(xpxl2), stroke_color, (yend - ypxl2) * static_cast<float>(xgap));
+        plot(static_cast<int>(ypxl2), static_cast<int>(xpxl2), stroke_color, (1.0f - (yend - ypxl2)) * xgap);
+        plot(static_cast<int>(ypxl2 + 1), static_cast<int>(xpxl2), stroke_color, (yend - ypxl2) * xgap);
     } else {
-        plot(static_cast<int>(xpxl2), static_cast<int>(ypxl2), stroke_color, (1.0f - (yend - ypxl2)) * static_cast<float>(xgap));
-        plot(static_cast<int>(xpxl2), static_cast<int>(ypxl2 + 1), stroke_color,(yend - ypxl2) * static_cast<float>(xgap));
+        plot(static_cast<int>(xpxl2), static_cast<int>(ypxl2), stroke_color, (1.0f - (yend - ypxl2)) * xgap);
+        plot(static_cast<int>(xpxl2), static_cast<int>(ypxl2 + 1), stroke_color,(yend - ypxl2) * xgap);
     }
 
     glEnd();
 }
 
-void drawArea(const std::vector<Vertex>& vertices, Color stroke_color) {
-    for (std::size_t i = 0; i < vertices.size(); i++) {
-        if (i + 1 == vertices.size()) {
-            drawLine(vertices[i], vertices[0], stroke_color, true);
+
+// #### SutherlandCohen ####
+
+int computeCode(Vertex v, int xmin, int xmax, int ymin, int ymax) {
+    int code = 0;
+    if (v.x < xmin) { code |= 1; }
+    if (v.x > xmax) { code |= 2; }
+    if (v.y < ymin) { code |= 4; }
+    if (v.y > ymax) { code |= 8; }
+    return code;
+};
+std::optional<std::pair<Vertex, Vertex>> sutherlandCohen(const Vertex &v1, const Vertex &v2, int xmin, int xmax, int ymin, int ymax) {
+    int code1 = computeCode(v1, xmin, xmax, ymin, ymax);
+    int code2 = computeCode(v2, xmin, xmax, ymin, ymax);
+
+    Vertex v1_r = v1;
+    Vertex v2_r = v2;
+    double x = v1_r.x;
+    double y = v1_r.y;
+
+    bool accept = false;
+    while (true) {
+        if (code1 == 0 && code2 == 0) {
+            accept = true;
+            break;
+        } else if ((code1 & code2) != 0) {
+            break;
         } else {
-            drawLine(vertices[i], vertices[i+1], stroke_color, true);
+            int codeOut = code1 != 0 ? code1 : code2;
+            if (codeOut & 1) {
+                x = xmin;
+                y = v1_r.y + (v2_r.y - v1_r.y) * (xmin - v1_r.x) / (v2_r.x - v1_r.x);
+            } else if (codeOut & 2) {
+                x = xmax;
+                y = v1_r.y + (v2_r.y - v1_r.y) * (xmax - v1_r.x) / (v2_r.x - v1_r.x);
+            } else if (codeOut & 4) {
+                y = ymin;
+                x = v1_r.x + (v2_r.x - v1_r.x) * (ymin - v1_r.y) / (v2_r.y - v1_r.y);
+            } else if (codeOut & 8) {
+                y = ymax;
+                x = v1_r.x + (v2_r.x - v1_r.x) * (ymax - v1_r.y) / (v2_r.y - v1_r.y);
+            }
+            if (codeOut == code1) {
+                v1_r.x = x;
+                v1_r.y = y;
+                code1 = computeCode(Vertex(v1_r.x, v1_r.y), xmin, xmax, ymin, ymax);
+            } else {
+                v2_r.x = x;
+                v2_r.y = y;
+                code2 = computeCode(Vertex(v2_r.x, v2_r.y), xmin, xmax, ymin, ymax);
+            }
         }
+    }
+    if (accept) {
+        return std::make_pair(v1_r, v2_r);
+    }
+    return std::nullopt;
+}
+
+
+// #### LiangBarsky ####
+
+std::optional<std::pair<Vertex, Vertex>> lineClip(const Vertex &v1, const Vertex &v2, int xmin, int xmax, int ymin, int ymax) {
+    double dx = v2.x - v1.x;
+    double dy = v2.y - v1.y;
+    
+    double t0 = 0.0;
+    double t1 = 1.0;
+    
+    auto clipTest = [&](double p, double q) -> bool {
+        if (p == 0) {
+            return q >= 0;
+        }
+        
+        double r = q / p;
+        if (p < 0) {
+            if (r > t0) t0 = r;
+            if (t0 > t1) return false;
+        } else {
+            if (r < t1) t1 = r;
+            if (t0 > t1) return false;
+        }
+        return true;
+    };
+    
+    if (!clipTest(-dx, v1.x - xmin)) return std::nullopt;
+    if (!clipTest( dx, xmax - v1.x)) return std::nullopt;
+    if (!clipTest(-dy, v1.y - ymin)) return std::nullopt;
+    if (!clipTest( dy, ymax - v1.y)) return std::nullopt;
+    
+    Vertex v1_r = v1;
+    Vertex v2_r = v2;
+
+    if (t0 > 0) {
+        v1_r.x = v1.x + t0 * dx;
+        v1_r.y = v1.y + t0 * dy;
+    } else {
+        v1_r.x = v1.x;
+        v1_r.y = v1.y;
+    }
+    
+    if (t1 < 1) {
+        v2_r.x = v1.x + t1 * dx;
+        v2_r.y = v1.y + t1 * dy;
+    } else {
+        v2_r.x = v2.x;
+        v2_r.y = v2.y;
+    }
+    
+    return std::make_pair(v1_r, v2_r);
+}
+
+
+void drawLineCrop(const Vertex &v1, const Vertex &v2, Color stroke_color, int xmin, int xmax, int ymin, int ymax) {
+    auto vv = lineClip(v1, v2, xmin, xmax, ymin, ymax);
+    if (vv.has_value()) {
+        auto [v1, v2] = vv.value();
+        drawLine(v1, v2, stroke_color, true);
     }
 }
 
 
 
-class Primitive {
-    private:
-        std::vector<Vertex> vertices;
-        Color stroke_color = Color(1.0f, 1.0f, 1.0f, 1.0f);
-
-    protected:
-        virtual void rotate(double angle, std::optional<Vertex> center = std::nullopt) = 0;
-
-        void setVertices(const std::vector<Vertex>& v) {
-            vertices = v;
+void drawArea(const std::vector<Vertex>& vertices, Color stroke_color, int xmin, int xmax, int ymin, int ymax) {
+    for (std::size_t i = 0; i < vertices.size(); i++) {
+        if (i + 1 == vertices.size()) {
+            drawLineCrop(vertices[i], vertices[0], stroke_color, xmin, xmax, ymin, ymax);
+        } else {
+            drawLineCrop(vertices[i], vertices[i+1], stroke_color, xmin, xmax, ymin, ymax);
         }
-    
-    public:
-        std::vector<Vertex> getVertices() const {
-            return vertices;
-        }
+    }
+}
 
-        void strokeColor(Color color) {
-            stroke_color = color;
-        }
-        
-        void render() const {
-            drawArea(vertices, stroke_color);
-        }
 
-};
-
-class Rect : public Primitive {
-    private:
-        Vertex v1;
-        Vertex v2;
-
-    public:
-        Rect(const Vertex& v1, const Vertex& v2) : v1{v1}, v2{v2} {
-            std::vector<Vertex> vv = {v1, Vertex(v2.x, v1.y), v2, Vertex(v1.x, v2.y)};
-            setVertices(std::move(vv));
-        }
-
-        Rect(const Vertex& pos, int width, int height) : Rect(pos, Vertex(pos.x + width, pos.y + height)) {}
-
-        void rotate(double angle, std::optional<Vertex> center = std::nullopt) override {
-            if (!center.has_value()) {
-                center = getCenterVertex(v1, v2);
-            }
-            setVertices(rotateVertex(getVertices(), *center, angle));
-        }
-};
-
-class Triangle : public Primitive {
-
-    public:
-        Triangle(const Vertex& v1, const Vertex& v2, const Vertex& v3) {
-            std::vector<Vertex> vv = {v1, v2, v3};
-            setVertices(std::move(vv));
-        }
-
-        Triangle(const Vertex& start_pos, const Vertex& rel_v1, const Vertex& rel_v2, const Vertex& rel_v3) :
-            Triangle(
-                    Vertex(start_pos.x + rel_v1.x, start_pos.y + rel_v1.y), 
-                    Vertex(start_pos.x + rel_v2.x, start_pos.y + rel_v2.y), 
-                    Vertex(start_pos.x + rel_v3.x, start_pos.y + rel_v3.y)
-            ) {}
-
-        void rotate(double angle, std::optional<Vertex> center = std::nullopt) override {
-            if (!center.has_value()) {
-                std::vector<Vertex> v = getVertices();
-                center = {(v[0].x + v[1].x + v[2].x) / 3, (v[0].y + v[1].y + v[2].y) / 3};
-            }
-            setVertices(rotateVertex(getVertices(), *center, angle));
-        }
-};
+#endif

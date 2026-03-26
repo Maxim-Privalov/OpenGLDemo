@@ -3,29 +3,37 @@ project(OpenGL_Project LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(BOOST_ROOT "C:/boost_1_90_0")
-set(Boost_NO_SYSTEM_PATHS ON)
-set(Boost_DEBUG ON)        
 
-set(GLFW_BUILD_EXAMPLES OFF CACHE INTERNAL "" FORCE)
-set(GLFW_BUILD_TESTS    OFF CACHE INTERNAL "" FORCE)
-set(GLFW_BUILD_DOCS     OFF CACHE INTERNAL "" FORCE)
-set(GLFW_INSTALL        OFF CACHE INTERNAL "" FORCE)
+# === GLAD как отдельная статическая библиотека ===
+add_library(glad STATIC glad/glad.c)
+set_target_properties(glad PROPERTIES LINKER_LANGUAGE C)
 
-add_subdirectory(external/glfw)
+target_include_directories(glad PRIVATE glad/include)
 
+# === Основной исполняемый файл ===
 add_executable(${PROJECT_NAME}
     main.cpp
-    glad/glad.c
+    app/textrenderer/textrenderer.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     glad/include
-    ${BOOST_ROOT}
 )
 
-target_link_libraries(${PROJECT_NAME}
+find_package(glfw3 CONFIG REQUIRED)
+find_package(freetype CONFIG REQUIRED)
+find_package(boost CONFIG REQUIRED)
+
+# === Линковка ===
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    glad
     glfw
     opengl32
+    Freetype::Freetype
+    Boost::boost
+    # freetype-gl
 )
 
+if(WIN32)
+    target_link_libraries(${PROJECT_NAME} PRIVATE opengl32)
+endif()

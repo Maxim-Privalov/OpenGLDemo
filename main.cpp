@@ -1,11 +1,18 @@
 #define _USE_MATH_DEFINES
+
+#define _USE_MATH_DEFINES
+
+#define GLFW_INCLUDE_NONE          // Крайне важно!
+#include <glad/glad.h>             // Сначала glad
 #include <GLFW/glfw3.h>
+
 #include <vector>
 #include <utility>
 #include <iostream>
 #include <cmath>
-#include "primitives.cpp"
-#include "interface.cpp"
+#include "app/primitives/2dshapes.hpp"
+#include "app/textrenderer/textrenderer.hpp"
+#include "app/interface.hpp"
 
 
 int main() {
@@ -14,6 +21,10 @@ int main() {
     });
 
     glfwInit();
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);  // ← Это ключ!
 
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_ALPHA_BITS, 8);
@@ -28,6 +39,15 @@ int main() {
 
     glfwMakeContextCurrent(window);
 
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        std::cout << "Failed to initialize GLAD" << std::endl;
+        glfwTerminate();
+        return -1;
+    }
+
+    // Проверка, что мы действительно получили legacy-контекст
+    std::cout << "OpenGL Version: " << glGetString(GL_VERSION) << std::endl;
+
     glEnable(GL_LINE_SMOOTH);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -38,6 +58,9 @@ int main() {
     int w, h;
     glfwGetFramebufferSize(window, &w, &h);
     glViewport(0, 0, w, h); // Область вывода
+
+    TextRenderer text;
+    text.LoadFont("C:/Windows/Fonts/arial.ttf", 36);
 
     // Идём на матрицу проекции
     glMatrixMode(GL_PROJECTION);
@@ -57,40 +80,71 @@ int main() {
     // Устанавливаем статические методы как callback'и
     glfwSetMouseButtonCallback(window, GUInterface::mouse_button_callback);
 
-    double t = 0;
+    //init_text();
+
+    int t = 0;
     while (!glfwWindowShouldClose(window)) {
 
         glClear(GL_COLOR_BUFFER_BIT);
 
         glPointSize(2.0f);
-        int offsetX = 300;
-        int offsetY = 300;
-        std::vector<Vertex> line = {Vertex(20, 80), Vertex(100, 80)};
-        drawLine(line[0], line[1], Color(0.5f, 0.5f, 1.0f, 1.0f));
+        int offsetX = 0;
+        int offsetY = 0;
         
-        Vertex center_vertex_line = getCenterVertex(line[0], line[1]);
-        std::vector<Vertex> rotated_line = rotateVertex(line, center_vertex_line, M_PI/4);
-        drawLine(rotated_line[0], rotated_line[1], Color(1, 1, 1, 1));
+        //render_text("page 1", 500, 30);
 
-        Vertex mousePointVertex = {interface.getClickPosX(), interface.getClickPosY()};
-        //std::vector<Vertex> rotated_rect = rotateVertex(rect, mousePointVertex, rotation_t);
-        //std::cout << rotated_line[0] << rotated_line[1];
+        int sX = 50;
+        int sY = 50;
+        int sWidth = 300;
+        int sHeight = 300;
+        
 
-        Rect rect = {mousePointVertex, 100, 140};
-        rect.rotate(M_PI/6);
-        rect.strokeColor(Color(0.5f, 1.0f, 0.5f, 1.0f));\
-        rect.rotate(t);
-        rect.render();
+        text.RenderText("Page 1", 500, 40.0f, 0.8f, 1.0f, 1.0f, 1.0f);
 
-        Rect rect1 = {Vertex(250, 100), 70, 140};
-        rect1.rotate(M_PI/6);
-        rect1.strokeColor(Color(0.5f, 1.0f, 0.5f, 1.0f));
-        rect1.render();
+        // Для Лиана-Барски
+        auto r = Rect(Vertex(sX, sY), Vertex(sX + sWidth, sY + sHeight));
+        r.strokeColor(Color(1, 0, 0, 1));
+        r.render();
 
-        t += 0.001;
+        int c = h / (2*25);
+
+        std::vector<int> directions;
+        for (int i = 0; i < c; i++) {
+            directions.push_back((i % 2 == 0) ? 1 : -1);
+        }
+
+        int i = 0;
+        for (int s = 0; s < h / 2; s += 25) {
+             auto r = Rect(Vertex(offsetX + s, offsetY + s), w - s*2, h - s*2);
+             r.rotate(directions[i]*2*M_PI*t/10000);
+             r.setCropBorder(Vertex(sX, sY), Vertex(sX + sWidth, sY + sHeight));
+             r.render();
+             i++;
+        }
+        
+        /*
+         Для Сазерленда-Коэна
+        int step = 400 * t/10000;
+        
+        auto r = Rect(Vertex(sX + step, sY + step), Vertex(sX + sWidth + step, sY + sHeight + step));
+        r.strokeColor(Color(1, 0, 0, 1));
+        r.render();
+        */
+    
+        // for (int s = 0; s < h / 2; s += 102 - 100*double(t)/10000) {
+        //     auto r = Rect(Vertex(offsetX + s, offsetY + s), w - s*2, h - s*2);
+        //     r.setCropBorder(Vertex(sX, sY), Vertex(sX + sWidth, sY + sHeight));
+        //     r.render();
+        // }
+        
         glfwPollEvents();
-        glfwSwapBuffers(window);   
+        glfwSwapBuffers(window);
+        t++;
+        if (t >= 10000) {
+            t = 0;
+        }
     }
+
 
     glfwDestroyWindow(window);
     glfwTerminate();

@@ -1,3 +1,6 @@
+#ifndef INTERFACE_H
+#define INTERFACE_H
+
 #include <GLFW/glfw3.h>
 #include <iostream>
 
@@ -32,3 +35,6 @@ class GUInterface {
             }
         }
 };
+
+
+#endif

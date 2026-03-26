@@ -1,0 +1,13 @@
+{  
+	"name": "myproject",  
+	"version": "0.1.0", 
+	"dependencies": [  
+		"glfw3",
+        "freetype",
+		"boost-ublas",
+		{
+			"name": "freetype-gl",
+			"features": [ "glad" ]
+		}
+	]  
+}
