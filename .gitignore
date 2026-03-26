@@ -1,0 +1,15 @@
+build/
+
+*.exe
+*.dll
+*.lib
+*.obj
+*.pdb
+
+.vscode/
+
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
