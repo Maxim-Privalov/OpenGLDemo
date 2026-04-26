@@ -1,17 +1,19 @@
 #define _USE_MATH_DEFINES
-
-#define _USE_MATH_DEFINES
-
 #define GLFW_INCLUDE_NONE
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include <vector>
 #include <utility>
 #include <iostream>
+#include <random>
+#include <thread>
+#include <chrono>
 #include <cmath>
 #include "app/primitives/2dshapes.hpp"
-#include "app/textrenderer/textrenderer.hpp"
+#include "app/primitives/curvensmooth.hpp"
+#include "app/extensions/polygons.hpp"
 #include "app/interface.hpp"
 
 
@@ -30,7 +32,7 @@ int main() {
     glfwWindowHint(GLFW_ALPHA_BITS, 8);
     glfwWindowHint(GLFW_SAMPLES, 4);
 
-    GLFWwindow* window = glfwCreateWindow(600, 600, "LearnOpenGL", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1000, 1000, "LearnOpenGL", nullptr, nullptr);
     if (window == nullptr) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -59,9 +61,6 @@ int main() {
     glfwGetFramebufferSize(window, &w, &h);
     glViewport(0, 0, w, h); // Область вывода
 
-    TextRenderer text;
-    text.LoadFont("C:/Windows/Fonts/arial.ttf", 36);
-
     // Идём на матрицу проекции
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity(); // сброс
@@ -79,38 +78,38 @@ int main() {
     glfwSetWindowUserPointer(window, &interface);
     // Устанавливаем статические методы как callback'и
     glfwSetMouseButtonCallback(window, GUInterface::mouse_button_callback);
+    // FPS
+    int time_sec_timer = 0;
+    int time_millisec_timer = 0;
 
-    //init_text();
+    std::random_device rd;
+    std::mt19937 gen1(rd());
+    std::mt19937 gen2(rd());
 
-    int t = 0;
+
     while (!glfwWindowShouldClose(window)) {
-
         glClear(GL_COLOR_BUFFER_BIT);
 
         glPointSize(2.0f);
-        int offsetX = 0;
-        int offsetY = 0;
+        
+        
 
-        int sX = 50;
-        int sY = 50;
-        int sWidth = 400;
-        int sHeight = 400;
 
-        // rect1.clearCropBorder();
-        // rect1.clearFillColor();
-        // rect1.render();
+        if (static_cast<int>(std::trunc(glfwGetTime() * 100)) != time_millisec_timer) {
+            time_millisec_timer = static_cast<int>(std::round(glfwGetTime() * 100));
+        }
+
+        if (static_cast<int>(std::trunc(glfwGetTime())) != time_sec_timer) {
+            time_sec_timer = static_cast<int>(std::round(glfwGetTime()));
+        }
+        
 
         glfwPollEvents();
         glfwSwapBuffers(window);
-        t++;
-        if (t >= 10000) {
-            t = 0;
-        }
     }
 
 
     glfwDestroyWindow(window);
-    glfwMakeContextCurrent(nullptr);
     glfwTerminate();
     return 0;
 }
