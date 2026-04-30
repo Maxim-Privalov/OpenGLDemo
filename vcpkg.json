@@ -5,6 +5,7 @@
 		"glfw3",
         "freetype",
 		"boost-ublas",
+		"boost-circular-buffer",
 		{
 			"name": "freetype-gl",
 			"features": [ "glad" ]
