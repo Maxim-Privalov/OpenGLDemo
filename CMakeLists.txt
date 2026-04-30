@@ -12,7 +12,7 @@ target_include_directories(glad PRIVATE glad/include)
 
 # === Основной исполняемый файл ===
 add_executable(${PROJECT_NAME}
-    task5.cpp
+    task6.cpp
     app/textrenderer/textrenderer.cpp
 )
 

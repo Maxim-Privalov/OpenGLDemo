@@ -1,5 +1,5 @@
-#ifndef POLIGONS_H
-#define POLIGONS_H
+#ifndef POLYGONS_H
+#define POLYGONS_H
 #define _USE_MATH_DEFINES
 
 #include <vector>
@@ -89,8 +89,6 @@ std::vector<Vertex> getSpiralPolygon(const Rect& section_rectangle, double endPh
 
     return parallelMove(result, Vertex(0, 0), start_pos);;
 }
-
-
 
 
 #endif

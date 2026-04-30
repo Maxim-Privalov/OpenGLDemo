@@ -12,7 +12,7 @@
 #include <chrono>
 #include <cmath>
 #include "app/primitives/2dshapes.hpp"
-#include "app/primitives/curvensmooth.hpp"
+#include "app/primitives/triangulation.hpp"
 #include "app/extensions/polygons.hpp"
 #include "app/interface.hpp"
 
@@ -84,14 +84,47 @@ int main() {
 
     std::random_device rd;
     std::mt19937 gen1(rd());
-    std::mt19937 gen2(rd());
+    std::uniform_int_distribution<> color_dist(0, 255);
 
+    std::vector<Vertex> poly1 = {Vertex(0, 0), Vertex(50, -20), Vertex(70, 50), Vertex(70, 80), Vertex(40, 90), Vertex(20, 120), Vertex(0, 80)};
+    poly1 = parallelMove(poly1, Vertex(0, 0), Vertex(200, 200));
+
+    auto ell = Ellipsis(Vertex(500, 250), 200, 400);
+    auto polystar = getRdVertexStarlike(ell, 7, gen1);
+
+    auto trPoly = triangulate(polystar);
+    for (auto& tr : trPoly) {
+        tr.fillColor(Color(color_dist(gen1), color_dist(gen1), color_dist(gen1), 1));
+    }
+
+    std::vector<Vertex> vp = {Vertex(0, 0), Vertex(200, -50), Vertex(200, 0), Vertex(150, 150), Vertex(200, 150), Vertex(50, 200), Vertex(0, 50)};
+    std::vector<Vertex> vpIn = {Vertex(50, 50), Vertex(100, 50), Vertex(75, 100), Vertex(25, 100)};
+    vp = parallelMove(vp, vp[0], Vertex(200, 500));
+    vpIn = parallelMove(vpIn, vpIn[0], Vertex(300, 550));
+
+    auto trAdv = triangulate(vp, vpIn);
+    for (auto& tr : trAdv) {
+        tr.fillColor(Color(color_dist(gen1), color_dist(gen1), color_dist(gen1), 1));
+    }
 
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);
 
         glPointSize(2.0f);
-        
+    
+        drawArea(parallelMove(polystar, polystar[0], Vertex(300, 280)), Color(140, 222, 10, 1), std::nullopt, 0, w, 0, h);
+        drawArea(vp, Color(140, 222, 10, 1), std::nullopt, 0, w, 0, h);
+        drawArea(vpIn, Color(140, 222, 10, 1), std::nullopt, 0, w, 0, h);
+
+
+        ell.render();
+        for (auto& tr : trPoly) {
+            tr.render();
+        }
+
+        for (auto& tr : trAdv) {
+            tr.render();
+        }
         
 
 
